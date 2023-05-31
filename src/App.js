@@ -1,34 +1,77 @@
 import React, { useState } from "react";
-import { SearchOutlined } from "@ant-design/icons";
-import { Input, Col, Row, Button, Space } from "antd";
+import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { Input, Col, Row, Button, Space, notification, Modal } from "antd";
 import axios from "axios";
 import "./App.css";
 
 const SERVER_URL = process.env.REACT_APP_API_URL;
 
 function App() {
-  const [url, setUrl] = useState("");
   const [brand, setBrand] = useState("");
-  const [message, setMessage] = useState("");
+  const [dropBoxKey, setDropBoxKey] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const searchSubmit = async (e) => {
     e.preventDefault();
-    setMessage("Processing...");
-    console.log("SERVER_URL------------>", SERVER_URL);
+    if (!dropBoxKey || !brand) {
+      openNotificationWithIcon("warning");
+      return;
+    }
     try {
-      const response = await axios.post(`${SERVER_URL}/api/v1/main`, {
-        URL: url,
+      openNotificationWithIcon("info");
+      const response = await axios.post("http://localhost:5000/api/v1/main", {
         brand: brand,
+        apikey: dropBoxKey,
       });
-
-      setMessage(response.data);
+      openNotificationWithIcon("success", response.data);
     } catch (error) {
-      setMessage("Error: " + error.message);
+      openNotificationWithIcon("error");
     }
   };
 
+  const insertDropboxKey = async (e) => {
+    e.preventDefault();
+    if (!dropBoxKey) {
+      openNotificationWithIcon("warning");
+      return;
+    }
+    setModalVisible(false);
+  };
+
+  const isOpenModal = async (e) => {
+    e.preventDefault();
+    setModalVisible(~modalVisible);
+  };
+
+  const openNotificationWithIcon = (type, state) => {
+    if (type === "warning")
+      notification["warning"]({
+        message: "Warning!",
+        description: "Please insert Dropbox api Key or Brand Name.",
+        duration: 0,
+      });
+    if (type === "info")
+      notification["info"]({
+        message: "Processing...",
+        description: "Please wait for a while.",
+        duration: 3,
+      });
+    if (type === "success")
+      notification["success"]({
+        message: "Success!",
+        description: state,
+        duration: 2,
+      });
+    if (type === "error")
+      notification["error"]({
+        message: "Error!",
+        description: "Expired token error! Please insert new Dropbox API key!",
+        duration: 3,
+      });
+  };
+
   return (
-    <div style={{ paddingTop: "150px" }}>
+    <div style={{ paddingTop: "300px" }}>
       <Row>
         <Col md={8} />
         <Col md={8}>
@@ -43,41 +86,64 @@ function App() {
           <Space direction="vertical" size="large" style={{ display: "flex" }}>
             <Input
               size="large"
-              addonBefore="URL:"
-              placeholder="input URL"
-              allowClear
-              onChange={(e) => setUrl(e.target.value)}
-            />
-
-            <Input
-              size="large"
               addonBefore="Brand:"
               placeholder="input brand"
               allowClear
               onChange={(e) => setBrand(e.target.value)}
             />
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Button
-                icon={<SearchOutlined />}
-                type="default"
-                danger
-                onClick={handleSubmit}
+            <Row>
+              <Col
+                md={12}
+                style={{ display: "flex", justifyContent: "center" }}
               >
-                Download Banner Ads
-              </Button>
-            </div>
+                <Button
+                  icon={<PlusOutlined />}
+                  type="primary"
+                  onClick={isOpenModal}
+                >
+                  Insert Dropbox Key
+                </Button>
+              </Col>
+              <Col
+                md={12}
+                style={{ display: "flex", justifyContent: "center" }}
+              >
+                <Button
+                  icon={<SearchOutlined />}
+                  type="default"
+                  danger
+                  onClick={searchSubmit}
+                >
+                  Download Banner Ads
+                </Button>
+              </Col>
+            </Row>
           </Space>
         </Col>
         <Col md={8}></Col>
-      </Row>
-      <Row>
-        <Col md={8} />
-        <Col md={8}>
-          <h3 style={{ textAlign: "center" }}>
-            <b>{message}</b>
-          </h3>
-        </Col>
-        <Col md={8} />
+        <Modal
+          open={modalVisible}
+          title="DROPBOX API KEY"
+          centered
+          onOk={insertDropboxKey}
+          onCancel={isOpenModal}
+          footer={[
+            <Button key="back" type="default" danger onClick={isOpenModal}>
+              Cancel
+            </Button>,
+            <Button key="submit" type="default" onClick={insertDropboxKey}>
+              Insert
+            </Button>,
+          ]}
+        >
+          <Input
+            size="medium"
+            addonBefore="API Key:"
+            placeholder="Please insert your Dropbox API Key..."
+            allowClear
+            onChange={(e) => setDropBoxKey(e.target.value)}
+          />
+        </Modal>
       </Row>
     </div>
   );
